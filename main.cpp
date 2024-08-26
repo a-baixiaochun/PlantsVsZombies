@@ -1,4 +1,5 @@
 #include <cstdio>
+#include <unistd.h>
 #include <graphics.h>
 #include "tools.h"
 
@@ -32,8 +33,8 @@ bool fileExist(const char* name)
 //    return true;
 //更优雅的写法 but 不简洁
     if (fp)
-    {
-        fclose(fp);
+        {
+            fclose(fp);
     }
     return fp != nullptr;
 }
@@ -68,8 +69,7 @@ void gameInit()
 
     curPlant = 0;
     initgraph(WIN_WIDTH, WIN_HEIGHT);//绘制窗口
-    HWND hWnd = GetConsoleWindow();
-    SetWindowPos(hWnd,HWND_TOP,1500,600,0,0,SWP_NOSIZE | SWP_NOZORDER);
+
 }
 
 void updateWindow()
@@ -85,12 +85,6 @@ void updateWindow()
         int y = 6;
         putimage(x,y,&imgCards[i]);
     }
-    // 渲染 拖动过程中的植物
-    if (curPlant > 0)
-    {
-        IMAGE* img = imgPlants[curPlant - 1][0];
-        putimagePNG(curX - img->getwidth() / 2,curY - img->getheight() / 2,imgPlants[curPlant - 1][0]);
-    }
 
     //种植
     for (int i = 0; i < 3; ++i) {
@@ -104,6 +98,13 @@ void updateWindow()
                 putimagePNG(x,y,imgPlants[plantType][index]);
             }
         }
+    }
+
+    // 渲染 拖动过程中的植物
+    if (curPlant > 0)
+    {
+        IMAGE* img = imgPlants[curPlant - 1][0];
+        putimagePNG(curX - img->getwidth() / 2,curY - img->getheight() / 2,imgPlants[curPlant - 1][0]);
     }
     EndBatchDraw(); //结束双缓冲
 }
@@ -145,15 +146,43 @@ void userClick()
     }
 }
 
+void updateGame()
+{
+    for (auto & i : map) {
+        for (auto & j : i) {
+            if (j.type > 0){
+                j.frameIndex++;
+                int plantType = j.type -1;
+                int plantIndex = j.frameIndex;
+                if (imgPlants[plantType][plantIndex] == nullptr){
+                    j.frameIndex = 0;
+                }
+            }
+        }
+    }
+}
+
 int main()
 {
     gameInit();
+    int timer = 0;
+    bool flag = true;
 
     while(1)
     {
         userClick();
-        updateWindow();
-
+        timer += getDelay();
+        if (timer > 20)
+        {
+            flag = true;
+            timer = 0;
+        }
+        if (flag)
+        {
+            flag = false;
+            updateWindow();
+            updateGame();
+        }
     }
 
     system("pause");
