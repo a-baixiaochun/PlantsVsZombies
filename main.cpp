@@ -162,9 +162,43 @@ void updateGame()
     }
 }
 
+void startUI()
+{
+    IMAGE imgStartBg,imgMenu1,imgMenu2;
+    loadimage(&imgStartBg,"res/menu.png");
+    loadimage(&imgMenu1,"res/menu1.png");
+    loadimage(&imgMenu2,"res/menu2.png");
+
+    int flag = 0;
+
+    while (1)
+    {   BeginBatchDraw();
+        putimage(0,0,&imgStartBg);
+        putimagePNG(474,75,flag ? &imgMenu2 : &imgMenu1);
+        EndBatchDraw();
+
+        ExMessage msg;
+        if (peekmessage(&msg))
+        {
+            if (msg.message == WM_LBUTTONDOWN &&
+                    msg.x > 474 && msg.x < 474 + 300 &&
+                    msg.y > 75 && msg.y < 75 +140)
+            {
+                flag = 1;
+                //EndBatchDraw();
+            }else if (msg.message == WM_LBUTTONUP && flag == 1)
+            {
+                return;
+            }
+        }
+        EndBatchDraw();
+    }
+}
+
 int main()
 {
     gameInit();
+    startUI();
     int timer = 0;
     bool flag = true;
 
