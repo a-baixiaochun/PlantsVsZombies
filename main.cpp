@@ -1,6 +1,7 @@
 #include <cstdio>
 #include <unistd.h>
 #include <graphics.h>
+#include <time.h>
 #include "tools.h"
 
 #define WIN_WIDTH 900
@@ -20,7 +21,19 @@ struct  plant{
     int type;       //0:么有植物， 1:第一种植物
     int frameIndex; //序列帧的序号
 };
+
+struct  sunshineBall{
+    int x,y;
+    int frameIndex;
+    int destY;
+    bool used;
+};
+
+struct sunshineBall balls[10];
+IMAGE imgSunshineBall[29];
+
 struct plant map[3][9];
+
 
 bool fileExist(const char* name)
 {
@@ -66,7 +79,12 @@ void gameInit()
         }
     }
 
-
+    memset(balls,0,sizeof(balls));
+    for (int i = 0; i < 29; ++i) {
+        sprintf_s(name,sizeof(name),"res/sunshine/%d.png",i + 1);
+        loadimage(&imgSunshineBall[i],name);
+    }
+    srand(time(NULL));
     curPlant = 0;
     initgraph(WIN_WIDTH, WIN_HEIGHT);//绘制窗口
 
@@ -145,6 +163,29 @@ void userClick()
         }
     }
 }
+void  createSunshine()
+{
+    static int count = 0;
+    static int fre = 400;
+    count++;
+    if (count >= fre)
+    {
+        fre = 200 + rand() % 200;
+        count = 0;
+
+        int ballMax = sizeof(balls) / sizeof(balls[0]);
+        int i;
+        for (i = 0; i < ballMax && balls[i].used; ++i) {
+
+        }
+        if (i >= ballMax)return;
+        balls[i].used = true;
+        balls[i].x = 260 + rand() % (900 - 260);
+        balls[i].y =  60;
+        balls[i].destY = 200 + (rand() % 4) * 90;
+    }
+
+}
 
 void updateGame()
 {
@@ -160,6 +201,8 @@ void updateGame()
             }
         }
     }
+
+    createSunshine();
 }
 
 void startUI()
