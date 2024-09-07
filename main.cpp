@@ -1,8 +1,12 @@
 #include <cstdio>
 #include <unistd.h>
 #include <graphics.h>
-#include <time.h>
+#include <ctime>
 #include "tools.h"
+
+#include <mmsystem.h>
+
+
 
 #define WIN_WIDTH 900
 #define WIN_HEIGHT 600
@@ -27,11 +31,12 @@ struct  sunshineBall{
     int frameIndex;
     int destY;
     bool used;
+    int timer;
 };
 
 struct sunshineBall balls[10];
 IMAGE imgSunshineBall[29];
-
+int sunshine;
 struct plant map[3][9];
 
 
@@ -84,10 +89,22 @@ void gameInit()
         sprintf_s(name,sizeof(name),"res/sunshine/%d.png",i + 1);
         loadimage(&imgSunshineBall[i],name);
     }
-    srand(time(NULL));
+    srand(time(nullptr));
     curPlant = 0;
+    sunshine = 50;
+
     initgraph(WIN_WIDTH, WIN_HEIGHT);//绘制窗口
 
+    //设置字体
+    LOGFONT font;
+    gettextstyle(&font);
+    font.lfHeight = 30;
+    font.lfWeight = 15;
+    strcpy(font.lfFaceName,"Segoe UI Black");
+    font.lfQuality = ANTIALIASED_QUALITY; //抗锯齿效果
+    settextstyle(&font);
+    setbkmode(TRANSPARENT); //背景透明
+    setcolor(BLACK); //字体颜色
 }
 
 void updateWindow()
@@ -124,7 +141,41 @@ void updateWindow()
         IMAGE* img = imgPlants[curPlant - 1][0];
         putimagePNG(curX - img->getwidth() / 2,curY - img->getheight() / 2,imgPlants[curPlant - 1][0]);
     }
+    int ballMax = sizeof(balls) / sizeof(balls[0]);
+    for (int i = 0; i < ballMax; ++i) {
+        if (balls[i].used)
+        {
+            IMAGE *img = &imgSunshineBall[balls[i].frameIndex];
+            putimagePNG(balls[i].x,balls[i].y,img);
+        }
+    }
+
+    char scoreText[8];
+    sprintf_s(scoreText,sizeof(scoreText),"%d",sunshine);
+    outtextxy(276,67,scoreText);
     EndBatchDraw(); //结束双缓冲
+}
+
+void collectSunshine(ExMessage* msg)
+{
+    int count = sizeof(balls) / sizeof(balls[0]);
+    int w = imgSunshineBall[0].getwidth();
+    int h = imgSunshineBall[0].getheight();
+
+    for (int i = 0; i <count; ++i) {
+        if (balls[i].used)
+        {
+            int x = balls[i].x;
+            int y = balls[i].y;
+            if (msg->x > x && msg->x < x + w &&
+                msg->y > y && msg->y < y + h)
+            {
+                balls[i].used = false;
+                sunshine += 25;
+                mciSendString("play res/sunshine.mp3",nullptr,0,nullptr);
+            }
+        }
+    }
 }
 
 void userClick()
@@ -141,6 +192,11 @@ void userClick()
                 int index = (msg.x - 338) / 65;
                 status = 1;
                 curPlant = index + 1;
+            }
+            else
+            {
+                //收集阳光
+                collectSunshine(&msg);
             }
         }
         else if (msg.message == WM_MOUSEMOVE && status == 1)
@@ -163,6 +219,7 @@ void userClick()
         }
     }
 }
+
 void  createSunshine()
 {
     static int count = 0;
@@ -183,8 +240,34 @@ void  createSunshine()
         balls[i].x = 260 + rand() % (900 - 260);
         balls[i].y =  60;
         balls[i].destY = 200 + (rand() % 4) * 90;
+        balls[i].timer = 0;
     }
 
+}
+
+void updateSunshine()
+{
+    int ballMax = sizeof(balls) / sizeof(balls[0]);
+    for (int i = 0; i < ballMax; ++i) {
+        if (balls[i].used)
+        {
+            balls[i].frameIndex = (balls[i].frameIndex + 1) % 29;
+            if (balls[i].timer == 0)
+            {
+                balls[i].y += 2;
+            }
+
+            if (balls[i].y >= balls[i].destY)
+            {
+
+                balls[i].timer++;
+                if (balls[i].timer > 100)
+                {
+                    balls[i].used = false;
+                }
+            }
+        }
+    }
 }
 
 void updateGame()
@@ -203,6 +286,7 @@ void updateGame()
     }
 
     createSunshine();
+    updateSunshine();
 }
 
 void startUI()
